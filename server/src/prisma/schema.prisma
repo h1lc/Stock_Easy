@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  GERANT
+  MAGASINIER
+  COMMERCIAL
+}
+
+enum MovementType {
+  ENTREE
+  SORTIE
+}
+
+enum OrderStatus {
+  BROUILLON
+  ENVOYE
+  RECU
+  ANNULE
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(COMMERCIAL)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  movements StockMovement[]
+  orders    PurchaseOrder[]
+}
+
+model Category {
+  id        Int       @id @default(autoincrement())
+  name      String    @unique
+  createdAt DateTime  @default(now())
+  products  Product[]
+}
+
+model Supplier {
+  id        Int             @id @default(autoincrement())
+  name      String
+  email     String?
+  phone     String?
+  address   String?
+  createdAt DateTime        @default(now())
+  products  Product[]
+  orders    PurchaseOrder[]
+}
+
+model Product {
+  id           Int      @id @default(autoincrement())
+  reference    String   @unique
+  name         String
+  description  String?
+  price        Float
+  quantity     Int      @default(0)
+  minThreshold Int      @default(5)
+  unit         String   @default("unité")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  categoryId Int?
+  category   Category? @relation(fields: [categoryId], references: [id])
+
+  supplierId Int?
+  supplier   Supplier? @relation(fields: [supplierId], references: [id])
+
+  movements     StockMovement[]
+  orderLines    OrderLine[]
+}
+
+model StockMovement {
+  id        Int          @id @default(autoincrement())
+  type      MovementType
+  quantity  Int
+  reason    String?
+  createdAt DateTime     @default(now())
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+}
+
+model PurchaseOrder {
+  id         Int         @id @default(autoincrement())
+  reference  String      @unique
+  status     OrderStatus @default(BROUILLON)
+  totalPrice Float       @default(0)
+  notes      String?
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  supplierId Int
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  createdById Int
+  createdBy   User @relation(fields: [createdById], references: [id])
+
+  lines OrderLine[]
+}
+
+model OrderLine {
+  id         Int   @id @default(autoincrement())
+  quantity   Int
+  unitPrice  Float
+
+  orderId   Int
+  order     PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId Int
+  product   Product @relation(fields: [productId], references: [id])
+}

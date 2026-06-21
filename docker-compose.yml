@@ -1,0 +1,59 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: stockeasy_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stockeasy
+      POSTGRES_PASSWORD: stockeasy_password
+      POSTGRES_DB: stockeasy_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stockeasy -d stockeasy_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - stockeasy_network
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: stockeasy_server
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://stockeasy:stockeasy_password@db:5432/stockeasy_db
+      JWT_SECRET: ${JWT_SECRET:-change_this_secret_in_production}
+      PORT: 3000
+      NODE_ENV: production
+      CLIENT_URL: http://localhost
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - stockeasy_network
+    command: sh -c "npx prisma migrate deploy && node src/index.js"
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: stockeasy_client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - stockeasy_network
+
+volumes:
+  postgres_data:
+
+networks:
+  stockeasy_network:
+    driver: bridge
