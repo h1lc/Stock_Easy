@@ -9,13 +9,19 @@ const mockProducts = [
   { id: 2, reference: 'PAP-002', name: 'Stylo bleu', price: 3.49, quantity: 3, minThreshold: 15, active: true, category: null, supplier: null },
 ];
 
+const newProduct = { id: 3, reference: 'NEW-001', name: 'Nouveau produit', price: 15.99, quantity: 0, minThreshold: 5, category: null, supplier: null };
+
+// findUnique returns null by default (no duplicate) — specific tests override with mockResolvedValueOnce
+const mockFindUnique = jest.fn().mockResolvedValue(null);
+const mockCreate = jest.fn().mockResolvedValue(newProduct);
+
 jest.mock('@prisma/client', () => ({
   PrismaClient: jest.fn().mockImplementation(() => ({
     product: {
       findMany: jest.fn().mockResolvedValue(mockProducts),
       count: jest.fn().mockResolvedValue(2),
-      findUnique: jest.fn().mockResolvedValue(mockProducts[0]),
-      create: jest.fn().mockResolvedValue({ ...mockProducts[0], id: 3 }),
+      findUnique: mockFindUnique,
+      create: mockCreate,
       update: jest.fn().mockResolvedValue(mockProducts[0]),
     },
     $disconnect: jest.fn(),
@@ -67,13 +73,19 @@ describe('POST /api/products', () => {
   });
 
   it('should create product for GERANT with valid data', async () => {
-    const { PrismaClient } = require('@prisma/client');
-    PrismaClient.mock.results[0].value.product.findUnique.mockResolvedValueOnce(null);
-
     const res = await request(app)
       .post('/api/products')
       .set('Authorization', `Bearer ${gerantToken}`)
       .send({ reference: 'NEW-001', name: 'Nouveau produit', price: 15.99 });
     expect(res.status).toBe(201);
+  });
+
+  it('should return 409 for duplicate reference', async () => {
+    mockFindUnique.mockResolvedValueOnce(mockProducts[0]);
+    const res = await request(app)
+      .post('/api/products')
+      .set('Authorization', `Bearer ${gerantToken}`)
+      .send({ reference: 'PAP-001', name: 'Doublon', price: 5.99 });
+    expect(res.status).toBe(409);
   });
 });

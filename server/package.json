@@ -33,6 +33,9 @@
     "prisma": "^5.14.0",
     "supertest": "^7.0.0"
   },
+  "prisma": {
+    "schema": "src/prisma/schema.prisma"
+  },
   "jest": {
     "testEnvironment": "node",
     "coverageThreshold": {
