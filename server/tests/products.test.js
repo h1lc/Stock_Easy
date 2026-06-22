@@ -89,3 +89,72 @@ describe('POST /api/products', () => {
     expect(res.status).toBe(409);
   });
 });
+
+describe('GET /api/products/:id', () => {
+  it('returns product by id', async () => {
+    mockFindUnique.mockResolvedValueOnce({ ...mockProducts[0], movements: [] });
+    const res = await request(app)
+      .get('/api/products/1')
+      .set('Authorization', `Bearer ${gerantToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.reference).toBe('PAP-001');
+  });
+
+  it('returns 404 for unknown product', async () => {
+    mockFindUnique.mockResolvedValueOnce(null);
+    const res = await request(app)
+      .get('/api/products/999')
+      .set('Authorization', `Bearer ${gerantToken}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('returns 400 for non-integer id', async () => {
+    const res = await request(app)
+      .get('/api/products/abc')
+      .set('Authorization', `Bearer ${gerantToken}`);
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('PUT /api/products/:id', () => {
+  it('updates product for GERANT', async () => {
+    const res = await request(app)
+      .put('/api/products/1')
+      .set('Authorization', `Bearer ${gerantToken}`)
+      .send({ name: 'Ramette modifiée', price: 6.99, reference: 'PAP-001' });
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 403 for COMMERCIAL', async () => {
+    const res = await request(app)
+      .put('/api/products/1')
+      .set('Authorization', `Bearer ${commercialToken}`)
+      .send({ name: 'Test', price: 5, reference: 'PAP-001' });
+    expect(res.status).toBe(403);
+  });
+
+  it('validates price on update', async () => {
+    const res = await request(app)
+      .put('/api/products/1')
+      .set('Authorization', `Bearer ${gerantToken}`)
+      .send({ name: '', price: -1, reference: 'PAP-001' });
+    expect(res.status).toBe(400);
+  });
+});
+
+describe('DELETE /api/products/:id', () => {
+  it('archives product for GERANT', async () => {
+    const res = await request(app)
+      .delete('/api/products/1')
+      .set('Authorization', `Bearer ${gerantToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.message).toContain('archivé');
+  });
+
+  it('returns 403 for COMMERCIAL', async () => {
+    const res = await request(app)
+      .delete('/api/products/1')
+      .set('Authorization', `Bearer ${commercialToken}`);
+    expect(res.status).toBe(403);
+  });
+});
