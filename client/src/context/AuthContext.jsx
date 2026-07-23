@@ -13,16 +13,32 @@ export function AuthProvider({ children }) {
     }
   });
 
+  const _setSession = (token, userData) => {
+    localStorage.setItem('stockeasy_token', token);
+    localStorage.setItem('stockeasy_user', JSON.stringify(userData));
+    api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    setUser(userData);
+  };
+
   const login = useCallback(async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
-    localStorage.setItem('stockeasy_token', data.token);
-    localStorage.setItem('stockeasy_user', JSON.stringify(data.user));
-    api.defaults.headers.common['Authorization'] = `Bearer ${data.token}`;
-    setUser(data.user);
+    _setSession(data.token, data.user);
     return data.user;
   }, []);
 
-  const logout = useCallback(() => {
+  const register = useCallback(async (email, password, name) => {
+    const { data } = await api.post('/auth/register', { email, password, name });
+    _setSession(data.token, data.user);
+    return data.user;
+  }, []);
+
+  // Appelé par la page /auth/callback après Google OAuth
+  const setSessionFromOAuth = useCallback((token, userData) => {
+    _setSession(token, userData);
+  }, []);
+
+  const logout = useCallback(async () => {
+    try { await api.post('/auth/logout'); } catch (_) {}
     localStorage.removeItem('stockeasy_token');
     localStorage.removeItem('stockeasy_user');
     delete api.defaults.headers.common['Authorization'];
@@ -38,7 +54,7 @@ export function AuthProvider({ children }) {
   const isGerant = user?.role === 'GERANT';
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, hasPermission, canWrite, isGerant }}>
+    <AuthContext.Provider value={{ user, login, register, logout, setSessionFromOAuth, hasPermission, canWrite, isGerant }}>
       {children}
     </AuthContext.Provider>
   );

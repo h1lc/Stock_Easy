@@ -28,12 +28,22 @@ enum OrderStatus {
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
-  password  String
+  password  String?
   name      String
   role      Role     @default(COMMERCIAL)
   active    Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // OAuth
+  googleId  String?  @unique
+
+  // Refresh token (rotation)
+  refreshToken String?
+
+  // Password reset
+  resetToken        String?
+  resetTokenExpires DateTime?
 
   movements StockMovement[]
   orders    PurchaseOrder[]

@@ -3,6 +3,8 @@ const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
+const cookieParser = require('cookie-parser');
+const passport = require('passport');
 
 const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
@@ -53,6 +55,8 @@ const authLimiter = rateLimit({
 
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+app.use(cookieParser());
+app.use(passport.initialize());
 
 if (process.env.NODE_ENV !== 'test') {
   app.use(morgan('combined'));
