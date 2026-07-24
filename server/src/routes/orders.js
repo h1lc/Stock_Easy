@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 const { authenticate } = require('../middleware/auth');
+const { sanitize } = require('../utils/sanitize');
 const { authorize } = require('../middleware/rbac');
 
 const router = express.Router();
@@ -79,7 +80,7 @@ router.post('/', authenticate, authorize('orders:write'), [
         supplierId: Number(supplierId),
         createdById: req.user.id,
         totalPrice,
-        notes: notes || null,
+        notes: sanitize(notes) || null,
         lines: {
           create: lines.map(l => ({
             productId: Number(l.productId),

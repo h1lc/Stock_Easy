@@ -8,6 +8,7 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const { authenticate } = require('../middleware/auth');
 const { sendResetPasswordEmail } = require('../services/email');
+const { sanitize } = require('../utils/sanitize');
 
 const router = express.Router();
 const prisma = new PrismaClient();
@@ -84,7 +85,7 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         user = await prisma.user.create({
           data: {
             email,
-            name: profile.displayName || email.split('@')[0],
+            name: sanitize(profile.displayName) || email.split('@')[0],
             googleId: profile.id,
             role: 'COMMERCIAL',
           },
@@ -156,7 +157,7 @@ router.post('/register', registerValidation, async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
     const user = await prisma.user.create({
-      data: { email, password: hashed, name, role: 'COMMERCIAL' },
+      data: { email, password: hashed, name: sanitize(name), role: 'COMMERCIAL' },
     });
 
     const accessToken = generateAccessToken(user);

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
+import ConfirmDialog from '../components/ConfirmDialog';
 
 const fetchProducts = (params) => api.get('/products', { params }).then(r => r.data);
 
@@ -100,10 +101,12 @@ export default function Products() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['products'] }),
   });
 
-  const handleDelete = (product) => {
-    if (window.confirm(`Archiver "${product.name}" ?`)) {
-      deleteMutation.mutate(product.id);
-    }
+  // Produit dont l'archivage est en attente de confirmation (null = aucune)
+  const [pendingArchive, setPendingArchive] = useState(null);
+
+  const confirmArchive = () => {
+    deleteMutation.mutate(pendingArchive.id);
+    setPendingArchive(null);
   };
 
   const products = data?.data || [];
@@ -200,7 +203,7 @@ export default function Products() {
                             Modifier
                           </button>
                           <button
-                            onClick={() => handleDelete(p)}
+                            onClick={() => setPendingArchive(p)}
                             className="text-danger-500 hover:text-danger-700 text-xs font-medium"
                             aria-label={`Archiver ${p.name}`}
                           >
@@ -227,6 +230,17 @@ export default function Products() {
               ? createMutation.mutateAsync(form)
               : updateMutation.mutateAsync({ id: modal.id, ...form })
           }
+        />
+      )}
+
+      {pendingArchive && (
+        <ConfirmDialog
+          title="Archiver ce produit ?"
+          message={`"${pendingArchive.name}" (${pendingArchive.reference}) n'apparaitra plus dans la liste. L'historique des mouvements est conserve et l'operation reste reversible en base.`}
+          confirmLabel="Archiver"
+          destructive
+          onConfirm={confirmArchive}
+          onCancel={() => setPendingArchive(null)}
         />
       )}
     </div>

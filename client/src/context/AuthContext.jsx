@@ -38,7 +38,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(async () => {
-    try { await api.post('/auth/logout'); } catch (_) {}
+    // La deconnexion locale doit aboutir meme si le serveur est injoignable :
+    // l'echec de la revocation cote serveur ne doit pas bloquer l'utilisateur.
+    try {
+      await api.post('/auth/logout');
+    } catch {
+      // ignore volontairement
+    }
     localStorage.removeItem('stockeasy_token');
     localStorage.removeItem('stockeasy_user');
     delete api.defaults.headers.common['Authorization'];

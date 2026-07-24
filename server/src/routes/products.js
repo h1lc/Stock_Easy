@@ -3,12 +3,11 @@ const { body, param, query, validationResult } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 const { authenticate } = require('../middleware/auth');
 const { authorize } = require('../middleware/rbac');
-const xss = require('xss');
+const { sanitize } = require('../utils/sanitize');
 
 const router = express.Router();
 const prisma = new PrismaClient();
 
-const sanitize = (str) => str ? xss(str.trim()) : str;
 
 const productValidation = [
   body('reference').trim().notEmpty().isLength({ max: 50 }),
@@ -28,13 +27,14 @@ router.get('/', authenticate, authorize('products:read'), async (req, res) => {
     const where = { active: true };
     if (search) where.name = { contains: sanitize(search), mode: 'insensitive' };
     if (categoryId) where.categoryId = Number(categoryId);
-    if (lowStock === 'true') where.quantity = { lte: prisma.product.fields?.minThreshold };
+    // Comparaison de deux colonnes (quantity <= minThreshold) via les
+    // references de champs Prisma : le filtrage se fait entierement en base,
+    // ce qui garde la pagination et le total coherents avec les donnees.
+    if (lowStock === 'true') where.quantity = { lte: prisma.product.fields.minThreshold };
 
     const [products, total] = await Promise.all([
       prisma.product.findMany({
-        where: lowStock === 'true'
-          ? { ...where, AND: [{ quantity: { lte: prisma.raw ? undefined : 0 } }] }
-          : where,
+        where,
         include: { category: true, supplier: true },
         orderBy: { name: 'asc' },
         skip,
@@ -43,12 +43,7 @@ router.get('/', authenticate, authorize('products:read'), async (req, res) => {
       prisma.product.count({ where }),
     ]);
 
-    // Filter low stock in memory if needed
-    const result = lowStock === 'true'
-      ? products.filter(p => p.quantity <= p.minThreshold)
-      : products;
-
-    res.json({ data: result, total, page: Number(page), limit: Number(limit) });
+    res.json({ data: products, total, page: Number(page), limit: Number(limit) });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Erreur serveur' });

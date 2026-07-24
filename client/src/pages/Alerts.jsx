@@ -8,7 +8,7 @@ export default function Alerts() {
   const { isGerant } = useAuth();
   const qc = useQueryClient();
 
-  const { data, isLoading, error } = useQuery({ queryKey: ['alerts'], queryFn: fetchAlerts, refetchInterval: 60_000 });
+  const { data, isLoading } = useQuery({ queryKey: ['alerts'], queryFn: fetchAlerts, refetchInterval: 60_000 });
 
   const autoOrderMutation = useMutation({
     mutationFn: () => api.post('/orders/auto'),
@@ -58,7 +58,7 @@ export default function Alerts() {
             <span className="text-2xl" aria-hidden="true">✓</span>
             <div>
               <p className="font-semibold">Tous les stocks sont suffisants</p>
-              <p className="text-sm mt-1">Aucun produit n'a atteint son seuil minimum.</p>
+              <p className="text-sm mt-1">Aucun produit n&apos;a atteint son seuil minimum.</p>
             </div>
           </div>
         </div>

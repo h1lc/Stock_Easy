@@ -27,6 +27,9 @@ export default function AuthCallback() {
     } catch {
       navigate('/login?error=google');
     }
+    // Volontairement execute une seule fois au montage : le garde `handled`
+    // empeche tout rejeu, et les parametres d'URL ne changent pas ici.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

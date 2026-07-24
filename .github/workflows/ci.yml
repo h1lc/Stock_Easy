@@ -33,6 +33,11 @@ jobs:
         env:
           DATABASE_URL: postgresql://dummy:dummy@localhost:5432/dummy
 
+      # OWASP A06 — Composants vulnerables : echoue sur toute faille
+      # de severite haute ou critique dans les dependances.
+      - name: Audit des dependances
+        run: npm audit --audit-level=high
+
       - name: Run tests with coverage
         run: npm run test:coverage
         env:
@@ -48,10 +53,10 @@ jobs:
           path: server/coverage/
 
   # ──────────────────────────────────────────────
-  # 2. Tests frontend
+  # 2. Lint et tests frontend
   # ──────────────────────────────────────────────
   test-client:
-    name: Frontend — Tests unitaires
+    name: Frontend — Lint et tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -68,11 +73,23 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: Lint
+        run: npm run lint
+
+      # Seules les dependances embarquees dans le bundle livre sont
+      # bloquantes. Les outils de developpement (Vite, Vitest) ne sont jamais
+      # deployes : ils sont verifies ensuite a titre informatif.
+      - name: Audit des dependances de production
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Audit complet (informatif)
+        run: npm audit || true
+
       - name: Run tests
         run: npm run test
 
   # ──────────────────────────────────────────────
-  # 3. Build Docker images (uniquement sur main)
+  # 3. Build des images Docker (uniquement sur main)
   # ──────────────────────────────────────────────
   build-docker:
     name: Build — Images Docker
@@ -86,13 +103,8 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Login to Docker Hub
-        if: github.event_name != 'pull_request'
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_TOKEN }}
-
+      # Les images sont construites pour valider les Dockerfile, sans etre
+      # publiees : aucune authentification a un registre n'est requise.
       - name: Build server image
         uses: docker/build-push-action@v5
         with:
@@ -112,19 +124,33 @@ jobs:
           cache-to: type=gha,mode=max
 
   # ──────────────────────────────────────────────
-  # 4. Déploiement (exemple — à adapter)
+  # 4. Déploiement (actif uniquement si un serveur est configuré)
   # ──────────────────────────────────────────────
   deploy:
     name: Déploiement production
     runs-on: ubuntu-latest
     needs: [build-docker]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-    environment: production
 
     steps:
       - uses: actions/checkout@v4
 
+      # Le contexte `secrets` n'est pas accessible dans le `if` d'un job : la
+      # condition est donc portee par les etapes. Sans serveur cible declare,
+      # le job reussit sans rien deployer, plutot que d'echouer sur une
+      # connexion SSH impossible.
+      - name: Verifier la configuration de deploiement
+        id: check
+        run: |
+          if [ -n "${{ secrets.DEPLOY_HOST }}" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Aucun serveur de deploiement configure (secret DEPLOY_HOST absent) — etape ignoree."
+          fi
+
       - name: Deploy via SSH
+        if: steps.check.outputs.configured == 'true'
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.DEPLOY_HOST }}
@@ -133,7 +159,6 @@ jobs:
           script: |
             cd /opt/stockeasy
             git pull origin main
-            docker compose pull
             docker compose up -d --build
-            docker compose exec server npx prisma migrate deploy
+            docker compose exec -T server npx prisma migrate deploy
             docker image prune -f

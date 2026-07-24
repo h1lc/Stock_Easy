@@ -14,12 +14,16 @@ const newProduct = { id: 3, reference: 'NEW-001', name: 'Nouveau produit', price
 // findUnique returns null by default (no duplicate) — specific tests override with mockResolvedValueOnce
 const mockFindUnique = jest.fn().mockResolvedValue(null);
 const mockCreate = jest.fn().mockResolvedValue(newProduct);
+const mockFindMany = jest.fn().mockResolvedValue(mockProducts);
+// Reference de champ Prisma, utilisee pour comparer quantity a minThreshold
+const mockFields = { minThreshold: Symbol('Product.minThreshold') };
 
 jest.mock('@prisma/client', () => ({
   PrismaClient: jest.fn().mockImplementation(() => ({
     product: {
-      findMany: jest.fn().mockResolvedValue(mockProducts),
+      findMany: mockFindMany,
       count: jest.fn().mockResolvedValue(2),
+      fields: mockFields,
       findUnique: mockFindUnique,
       create: mockCreate,
       update: jest.fn().mockResolvedValue(mockProducts[0]),
@@ -156,5 +160,36 @@ describe('DELETE /api/products/:id', () => {
       .delete('/api/products/1')
       .set('Authorization', `Bearer ${commercialToken}`);
     expect(res.status).toBe(403);
+  });
+});
+
+describe('GET /api/products?lowStock=true', () => {
+  beforeEach(() => mockFindMany.mockClear());
+
+  it('filtre en base en comparant quantity a minThreshold, sans filtrage memoire', async () => {
+    const res = await request(app)
+      .get('/api/products?lowStock=true')
+      .set('Authorization', `Bearer ${gerantToken}`);
+
+    expect(res.status).toBe(200);
+
+    // Le filtre doit etre delegue a la base (reference de champ Prisma) : c'est
+    // ce qui garde le total et la pagination coherents avec les donnees.
+    const where = mockFindMany.mock.calls[0][0].where;
+    expect(where.quantity).toEqual({ lte: mockFields.minThreshold });
+    expect(where.active).toBe(true);
+
+    // Aucun filtrage supplementaire en memoire : tout ce que renvoie la base
+    // est transmis tel quel, sinon data et total divergeraient.
+    expect(res.body.data).toHaveLength(mockProducts.length);
+    expect(res.body.total).toBe(2);
+  });
+
+  it('n\'applique aucun filtre de stock quand lowStock est absent', async () => {
+    await request(app)
+      .get('/api/products')
+      .set('Authorization', `Bearer ${gerantToken}`);
+
+    expect(mockFindMany.mock.calls[0][0].where.quantity).toBeUndefined();
   });
 });

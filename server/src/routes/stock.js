@@ -2,6 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const { PrismaClient } = require('@prisma/client');
 const { authenticate } = require('../middleware/auth');
+const { sanitize } = require('../utils/sanitize');
 const { authorize } = require('../middleware/rbac');
 
 const router = express.Router();
@@ -66,7 +67,7 @@ router.post('/movements', authenticate, authorize('stock:write'), movementValida
           productId: Number(productId),
           type,
           quantity: Number(quantity),
-          reason: reason || null,
+          reason: sanitize(reason) || null,
           userId: req.user.id,
         },
         include: {

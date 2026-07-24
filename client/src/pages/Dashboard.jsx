@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, LineChart, Line,
+  ResponsiveContainer,
 } from 'recharts';
 import api from '../api/axios';
 

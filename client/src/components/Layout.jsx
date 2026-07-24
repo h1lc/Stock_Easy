@@ -24,6 +24,16 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex bg-gray-50">
+      {/* Lien d'evitement — RGAA 12.7 : permet d'atteindre le contenu
+          principal sans parcourir toute la navigation au clavier.
+          Visuellement masque, il apparait des qu'il recoit le focus. */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-lg focus:bg-primary-600 focus:px-4 focus:py-2 focus:text-white focus:shadow-lg"
+      >
+        Aller au contenu principal
+      </a>
+
       {/* Sidebar */}
       <nav className="w-64 bg-white border-r border-gray-200 flex flex-col" aria-label="Navigation principale">
         <div className="p-6 border-b border-gray-200">

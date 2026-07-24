@@ -98,6 +98,22 @@ describe('POST /api/auth/register', () => {
     expect(await bcrypt.compare('Password123', stored)).toBe(true);
   });
 
+  it('neutralise le HTML injecte dans le nom (OWASP A03)', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+
+    await request(app)
+      .post('/api/auth/register')
+      .send({
+        name: '<script>alert(1)</script>Jean',
+        email: 'xss@dupont-fils.fr',
+        password: 'Password123',
+      });
+
+    const stored = mockPrisma.user.create.mock.calls[0][0].data.name;
+    expect(stored).not.toMatch(/<script>/);
+    expect(stored).toContain('Jean');
+  });
+
   it('refuse un email deja utilise', async () => {
     mockPrisma.user.findUnique.mockResolvedValue(baseUser);
 
