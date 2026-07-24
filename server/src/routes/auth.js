@@ -40,6 +40,23 @@ function clearRefreshCookie(res) {
 }
 
 // ─── Google OAuth ─────────────────────────────────────────────────────────────
+// Route de fallback si Google OAuth non configuré
+router.get('/google', (req, res, next) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    return res.redirect(`${clientUrl}/login?error=google_not_configured`);
+  }
+  next();
+});
+
+router.get('/google/callback', (req, res, next) => {
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+    return res.redirect(`${clientUrl}/login?error=google_not_configured`);
+  }
+  next();
+});
+
 if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,

@@ -15,6 +15,10 @@ const dashboardRoutes = require('./routes/dashboard');
 
 const app = express();
 
+// Derrière le reverse-proxy Nginx (Docker) : nécessaire pour que le rate-limiter
+// et les cookies secure identifient correctement le client via X-Forwarded-For.
+app.set('trust proxy', 1);
+
 // Security headers (OWASP A05 - Security Misconfiguration)
 app.use(helmet({
   contentSecurityPolicy: {

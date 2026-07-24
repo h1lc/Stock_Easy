@@ -18,6 +18,7 @@ export default function Login() {
     const err = searchParams.get('error');
     const session = searchParams.get('session');
     if (err === 'google') setError("La connexion avec Google a echoue. Reessayez.");
+    if (err === 'google_not_configured') setError("La connexion Google n'est pas encore configuree. Utilisez email + mot de passe.");
     if (session === 'expired') setError("Votre session a expire. Reconnectez-vous.");
   }, [searchParams]);
 

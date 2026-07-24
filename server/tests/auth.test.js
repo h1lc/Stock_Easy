@@ -14,6 +14,9 @@ jest.mock('@prisma/client', () => {
     PrismaClient: jest.fn().mockImplementation(() => ({
       user: {
         findUnique: jest.fn().mockResolvedValue(mockUser),
+        findFirst: jest.fn().mockResolvedValue(mockUser),
+        // Le login stocke le refresh token en base apres authentification
+        update: jest.fn().mockResolvedValue(mockUser),
       },
       $disconnect: jest.fn(),
     })),
