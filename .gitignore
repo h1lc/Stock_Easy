@@ -31,4 +31,6 @@ coverage/
 Thumbs.db
 
 # Prisma
-server/src/prisma/migrations/
+# Les migrations SONT versionnees : elles constituent l'historique du schema
+# et sont rejouees par `prisma migrate deploy` au demarrage du container.
+# Les ignorer rendrait tout deploiement depuis un clone inoperant.
