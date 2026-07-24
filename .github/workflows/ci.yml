@@ -85,8 +85,17 @@ jobs:
       - name: Audit complet (informatif)
         run: npm audit || true
 
-      - name: Run tests
-        run: npm run test
+      # Comme cote backend, des seuils de couverture bloquants garantissent
+      # que les tests suivent les evolutions du code.
+      - name: Run tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: client-coverage
+          path: client/coverage/
 
   # ──────────────────────────────────────────────
   # 3. Build des images Docker (uniquement sur main)
