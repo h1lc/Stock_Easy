@@ -61,7 +61,11 @@ describe('AuthContext', () => {
     localStorage.setItem('stockeasy_token', 'token');
     let auth;
     render(<AuthProvider><TestComponent onAuth={a => { auth = a; }} /></AuthProvider>);
-    act(() => auth.logout());
+    // logout() est asynchrone : il notifie le serveur (revocation du refresh
+    // token) avant de purger le stockage local. Il faut donc l'attendre.
+    await act(async () => { await auth.logout(); });
     expect(localStorage.getItem('stockeasy_token')).toBeNull();
+    expect(localStorage.getItem('stockeasy_user')).toBeNull();
+    expect(auth.user).toBeNull();
   });
 });

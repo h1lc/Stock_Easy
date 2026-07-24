@@ -114,7 +114,12 @@ export default function Login() {
               </Link>
             </div>
 
-            <button type="submit" disabled={loading} className="btn-primary w-full" aria-busy={loading}>
+            <button
+              type="submit"
+              disabled={loading || !form.email || !form.password}
+              className="btn-primary w-full"
+              aria-busy={loading}
+            >
               {loading ? 'Connexion...' : 'Se connecter'}
             </button>
           </form>
