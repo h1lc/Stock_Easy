@@ -1,0 +1,36 @@
+# Surveillance automatique des dependances (C4.1.1).
+# Dependabot ouvre chaque semaine une pull request par mise a jour disponible ;
+# la CI (npm audit + tests) valide la mise a jour avant toute fusion.
+version: 2
+updates:
+  # Dependances du serveur (API Node.js / Express)
+  - package-ecosystem: "npm"
+    directory: "/server"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Dependances du client (React / Vite)
+  - package-ecosystem: "npm"
+    directory: "/client"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    labels:
+      - "dependencies"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Actions GitHub utilisees par la CI
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    labels:
+      - "ci"
